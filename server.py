@@ -6,16 +6,15 @@ import os
 import datetime
 from functools import wraps
 
-# Initialize Flask app
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
 # Initialize Firebase Admin
-cred = credentials.Certificate("firebase-key.json")  # Make sure this file exists
+cred = credentials.Certificate("firebase-key.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Helper function for authentication
+# Authentication decorator
 def firebase_authenticated(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -94,8 +93,7 @@ def login():
         if not email or not password:
             return jsonify({'error': 'Email and password are required'}), 400
 
-        # Note: Actual authentication happens client-side with Firebase SDK
-        # Here we just verify the user exists and return a custom token
+        # Verify user exists
         user = auth.get_user_by_email(email)
         
         # Get user data from Firestore
@@ -132,22 +130,6 @@ def verify_token():
         user_doc = db.collection('users').document(request.uid).get()
         if not user_doc.exists:
             return jsonify({'error': 'User data not found'}), 404
-            
-        return jsonify({
-            'success': True,
-            'user': user_doc.to_dict()
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/user', methods=['GET'])
-@firebase_authenticated
-def get_user():
-    try:
-        user_doc = db.collection('users').document(request.uid).get()
-        if not user_doc.exists:
-            return jsonify({'error': 'User not found'}), 404
             
         return jsonify({
             'success': True,
@@ -236,4 +218,4 @@ def update_profile():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
