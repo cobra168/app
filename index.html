@@ -1,43 +1,171 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>User Notes App</title>
+  <title>NLH Music - Notes App</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-    input, textarea { width: 100%; margin-bottom: 10px; padding: 8px; }
-    button { padding: 8px 15px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #3367d6; }
-    pre { background: #f5f5f5; padding: 15px; border-radius: 4px; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0e0e0e 0%, #1c1c1c 100%);
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      border-bottom: 1px solid #333;
+      margin-bottom: 30px;
+    }
+    
+    h1 {
+      color: #1db954;
+    }
+    
+    .auth-section {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .auth-section p {
+      margin-right: 10px;
+      color: #b3b3b3;
+    }
+    
+    button {
+      background: #1db954;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    button:hover {
+      background: #1ed760;
+      transform: translateY(-2px);
+    }
+    
+    button.secondary {
+      background: #333;
+    }
+    
+    button.secondary:hover {
+      background: #444;
+    }
+    
+    section {
+      background: #1c1c1c;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    h2 {
+      margin-bottom: 15px;
+      color: #1db954;
+    }
+    
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      background: #2a2a2a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .notes-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .note-card {
+      background: #2a2a2a;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #1db954;
+    }
+    
+    .note-date {
+      font-size: 12px;
+      color: #b3b3b3;
+      margin-bottom: 8px;
+    }
+    
+    .error {
+      color: #ff4444;
+      margin-top: 10px;
+    }
+    
+    .success {
+      color: #1db954;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <h1>Notes App with Firebase Auth</h1>
+  <div class="container">
+    <header>
+      <h1><i class="fas fa-music"></i> NLH Music Notes</h1>
+      <div class="auth-section">
+        <p id="auth-status">Not logged in</p>
+        <button id="logout-btn" class="secondary" style="display:none;">Logout</button>
+        <button id="auth-btn">Login</button>
+      </div>
+    </header>
 
-  <section id="auth-section">
-    <h2>Authentication</h2>
-    <input id="email" placeholder="Email"><br>
-    <input id="password" type="password" placeholder="Password"><br>
-    <button onclick="register()">Register</button>
-    <button onclick="login()">Login</button>
-    <button onclick="logout()">Logout</button>
-    <p id="auth-status">Not logged in</p>
-  </section>
+    <section id="notes-section" style="display:none;">
+      <h2>Save New Note</h2>
+      <textarea id="note-field" placeholder="Write your note here..."></textarea>
+      <button id="save-note-btn">Save Note</button>
+      <div id="note-message"></div>
+    </section>
 
-  <section id="notes-section" style="display:none;">
-    <h2>Save Note</h2>
-    <textarea id="note_field" rows="4" placeholder="Your note..."></textarea><br>
-    <button onclick="saveNote()">Save Note</button>
+    <section id="notes-list-section" style="display:none;">
+      <h2>Your Notes</h2>
+      <button id="refresh-notes-btn">Refresh Notes</button>
+      <div class="notes-container" id="notes-container"></div>
+    </section>
 
-    <h2>Your Notes</h2>
-    <button onclick="loadNotes()">Refresh Notes</button>
-    <div id="notes"></div>
-  </section>
+    <section id="login-section">
+      <h2>Login / Register</h2>
+      <input type="email" id="email-field" placeholder="Email">
+      <input type="password" id="password-field" placeholder="Password">
+      <button id="login-btn">Login</button>
+      <button id="register-btn" class="secondary">Register</button>
+      <div id="auth-message"></div>
+    </section>
+  </div>
 
   <script>
-    // Firebase configuration
+    // Firebase configuration - REPLACE WITH YOUR ACTUAL CONFIG
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_AUTH_DOMAIN",
@@ -52,127 +180,248 @@
     const API_BASE_URL = "https://app-azr5.onrender.com";
     let currentUser = null;
 
+    // DOM Elements
+    const authStatus = document.getElementById('auth-status');
+    const logoutBtn = document.getElementById('logout-btn');
+    const authBtn = document.getElementById('auth-btn');
+    const notesSection = document.getElementById('notes-section');
+    const notesListSection = document.getElementById('notes-list-section');
+    const loginSection = document.getElementById('login-section');
+    const emailField = document.getElementById('email-field');
+    const passwordField = document.getElementById('password-field');
+    const loginBtn = document.getElementById('login-btn');
+    const registerBtn = document.getElementById('register-btn');
+    const authMessage = document.getElementById('auth-message');
+    const noteField = document.getElementById('note-field');
+    const saveNoteBtn = document.getElementById('save-note-btn');
+    const noteMessage = document.getElementById('note-message');
+    const refreshNotesBtn = document.getElementById('refresh-notes-btn');
+    const notesContainer = document.getElementById('notes-container');
+
     // Auth state listener
-    firebase.auth().onAuthStateChanged(user => {
+    firebase.auth().onAuthStateChanged(async (user) => {
       currentUser = user;
-      const authStatus = document.getElementById('auth-status');
-      const notesSection = document.getElementById('notes-section');
       
       if (user) {
+        // User is logged in
         authStatus.textContent = `Logged in as: ${user.email}`;
-        authStatus.style.color = 'green';
+        authStatus.style.color = '#1db954';
+        logoutBtn.style.display = 'block';
+        authBtn.style.display = 'none';
         notesSection.style.display = 'block';
-        loadNotes();
+        notesListSection.style.display = 'block';
+        loginSection.style.display = 'none';
+        
+        // Load notes
+        await loadNotes();
       } else {
+        // User is logged out
         authStatus.textContent = 'Not logged in';
-        authStatus.style.color = 'red';
+        authStatus.style.color = '#b3b3b3';
+        logoutBtn.style.display = 'none';
+        authBtn.style.display = 'block';
         notesSection.style.display = 'none';
+        notesListSection.style.display = 'none';
+        loginSection.style.display = 'block';
       }
     });
 
-    async function register() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+    // Event listeners
+    authBtn.addEventListener('click', () => {
+      loginSection.style.display = 'block';
+    });
+
+    logoutBtn.addEventListener('click', logoutUser);
+    loginBtn.addEventListener('click', loginUser);
+    registerBtn.addEventListener('click', registerUser);
+    saveNoteBtn.addEventListener('click', saveNote);
+    refreshNotesBtn.addEventListener('click', loadNotes);
+
+    async function loginUser() {
+      const email = emailField.value;
+      const password = passwordField.value;
       
+      if (!email || !password) {
+        showMessage(authMessage, 'Email and password are required', 'error');
+        return;
+      }
+
       try {
-        // Create user in Firebase Auth
-        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        // Sign in with Firebase
+        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
         
-        // Register with backend
-        const res = await fetch(`${API_BASE_URL}/register`, {
+        // Verify token with backend
+        const token = await userCredential.user.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/verify_token`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({email, password})
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
         });
         
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || 'Registration failed');
+        if (!response.ok) {
+          throw new Error('Failed to verify token');
         }
         
-        alert('Registration successful!');
+        showMessage(authMessage, 'Login successful!', 'success');
       } catch (error) {
-        alert(`Error: ${error.message}`);
+        showMessage(authMessage, error.message, 'error');
       }
     }
 
-    async function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+    async function registerUser() {
+      const email = emailField.value;
+      const password = passwordField.value;
       
+      if (!email || !password) {
+        showMessage(authMessage, 'Email and password are required', 'error');
+        return;
+      }
+
+      if (password.length < 6) {
+        showMessage(authMessage, 'Password must be at least 6 characters', 'error');
+        return;
+      }
+
       try {
-        await firebase.auth().signInWithEmailAndPassword(email, password);
+        // Register with backend
+        const response = await fetch(`${API_BASE_URL}/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            userData: {} // Add any additional user data here
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Sign in with custom token
+          await firebase.auth().signInWithCustomToken(data.token);
+          showMessage(authMessage, 'Registration successful!', 'success');
+        } else {
+          throw new Error(data.error || 'Registration failed');
+        }
       } catch (error) {
-        alert(`Error: ${error.message}`);
+        showMessage(authMessage, error.message, 'error');
       }
     }
 
-    function logout() {
+    function logoutUser() {
       firebase.auth().signOut();
     }
 
     async function saveNote() {
       if (!currentUser) {
-        alert('Please login first');
+        showMessage(noteMessage, 'Please login first', 'error');
         return;
       }
-      
-      const note = document.getElementById('note_field').value;
+
+      const note = noteField.value.trim();
       if (!note) {
-        alert('Please enter a note');
+        showMessage(noteMessage, 'Note cannot be empty', 'error');
         return;
       }
-      
+
       try {
-        const res = await fetch(`${API_BASE_URL}/save_note`, {
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/notes`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
-            uid: currentUser.uid,
             note: note
           })
         });
         
-        const data = await res.json();
-        if (res.ok) {
-          alert('Note saved!');
-          document.getElementById('note_field').value = '';
-          loadNotes();
+        if (response.ok) {
+          noteField.value = '';
+          showMessage(noteMessage, 'Note saved successfully!', 'success');
+          await loadNotes();
         } else {
-          throw new Error(data.error || 'Failed to save note');
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to save note');
         }
       } catch (error) {
-        alert(`Error: ${error.message}`);
+        showMessage(noteMessage, error.message, 'error');
       }
     }
 
     async function loadNotes() {
       if (!currentUser) return;
-      
+
       try {
-        const res = await fetch(`${API_BASE_URL}/notes?uid=${currentUser.uid}`);
-        const data = await res.json();
-        
-        if (res.ok) {
-          const notesContainer = document.getElementById('notes');
-          if (data.notes && data.notes.length > 0) {
-            notesContainer.innerHTML = data.notes.map(note => 
-              `<div class="note">
-                <p>${new Date(note.timestamp).toLocaleString()}</p>
-                <p>${note.text}</p>
-                <hr>
-              </div>`
-            ).join('');
-          } else {
-            notesContainer.innerHTML = '<p>No notes yet</p>';
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/notes`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          displayNotes(data.notes || []);
         } else {
-          throw new Error(data.error || 'Failed to load notes');
+          throw new Error('Failed to load notes');
         }
       } catch (error) {
-        alert(`Error: ${error.message}`);
+        showMessage(noteMessage, error.message, 'error');
       }
     }
+
+    function displayNotes(notes) {
+      notesContainer.innerHTML = '';
+      
+      if (notes.length === 0) {
+        notesContainer.innerHTML = '<p>No notes yet. Create your first note!</p>';
+        return;
+      }
+      
+      // Sort notes by date (newest first)
+      notes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      notes.forEach(note => {
+        const noteCard = document.createElement('div');
+        noteCard.className = 'note-card';
+        
+        const noteDate = document.createElement('p');
+        noteDate.className = 'note-date';
+        noteDate.textContent = new Date(note.createdAt).toLocaleString();
+        
+        const noteContent = document.createElement('p');
+        noteContent.textContent = note.note;
+        
+        noteCard.appendChild(noteDate);
+        noteCard.appendChild(noteContent);
+        notesContainer.appendChild(noteCard);
+      });
+    }
+
+    function showMessage(element, message, type) {
+      element.textContent = message;
+      element.className = type;
+      setTimeout(() => {
+        element.textContent = '';
+        element.className = '';
+      }, 3000);
+    }
+
+    // Initialize
+    window.onload = () => {
+      // Check if user is already logged in
+      const token = localStorage.getItem('firebaseToken');
+      if (token) {
+        // Auth state listener will handle the rest
+      }
+    };
   </script>
 </body>
 </html>
