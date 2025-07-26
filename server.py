@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 from flask_cors import CORS
+import os
 
 app = Flask(__name__)
 CORS(app)  # Enable cross-origin requests
@@ -52,4 +53,5 @@ def get_notes():
     return jsonify(notes=notes), 200
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    port = int(os.environ.get("PORT", 5000))  # For Render deployment
+    app.run(host="0.0.0.0", port=port)
