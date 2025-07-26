@@ -3,3 +3,4 @@ Flask
 firebase-admin
 flask-cors
 gunicorn
+pyjwt
