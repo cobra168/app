@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Notes App</title>
+</head>
+<body>
+  <h2>Register</h2>
+  <input id="reg_email" placeholder="Email"><br>
+  <input id="reg_pwd" type="password" placeholder="Password"><br>
+  <button onclick="register()">Register</button>
+
+  <h2>Save Note</h2>
+  <input id="uid_field" placeholder="User UID"><br>
+  <textarea id="note_field" rows="4" cols="30"></textarea><br>
+  <button onclick="saveNote()">Save Note</button>
+
+  <h2>Your Notes</h2>
+  <button onclick="loadNotes()">Load Notes</button>
+  <pre id="notes"></pre>
+
+  <script>
+    async function register() {
+      const res = await fetch('/register', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email: document.getElementById('reg_email').value,
+                              password: document.getElementById('reg_pwd').value})
+      });
+      const data = await res.json();
+      if (res.ok) alert(`Registered! UID: ${data.uid}`);
+      else alert(`Error: ${data.error}`);
+    }
+    async function saveNote() {
+      const uid = document.getElementById('uid_field').value;
+      const note = document.getElementById('note_field').value;
+      const res = await fetch('/save_note', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({uid, note})
+      });
+      const data = await res.json();
+      alert(data.success ? 'Note saved!' : `Error: ${data.error}`);
+    }
+    async function loadNotes() {
+      const uid = document.getElementById('uid_field').value;
+      const res = await fetch(`/notes?uid=${uid}`);
+      const data = await res.json();
+      if (res.ok) document.getElementById('notes').textContent = JSON.stringify(data.notes, null, 2);
+      else alert(`Error: ${data.error}`);
+    }
+  </script>
+</body>
+</html>
