@@ -1,3 +1,5 @@
+flask_cors
 Flask
 firebase-admin
-flask_cors
+flask-cors
+gunicorn
